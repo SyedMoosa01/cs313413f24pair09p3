@@ -7,7 +7,7 @@ package edu.luc.etl.cs313.android.shapes.model;
  */
 public class BoundingBox implements Visitor<Location> {
 
-    // TODO entirely your job (except onCircle)
+    // TODO entirely your job (except onCircle) -Completed
 
     @Override
     public Location onCircle(final Circle c) {
@@ -17,88 +17,73 @@ public class BoundingBox implements Visitor<Location> {
 
     @Override
     public Location onFill(final Fill f) {
-        // Calculate the bounding box of the contained shape
+        // Sets the surrounding box calculation to fit the shape fill
         return f.getShape().accept(this);
     }
 
     @Override
     public Location onGroup(final Group g) {
+        // calc bounding box of shape
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE;
         int maxY = Integer.MIN_VALUE;
-
-        // Iterate over each shape in the group and calculate the bounding box
         for (Shape shape : g.getShapes()) {
-            Location box = shape.accept(this); // Get the bounding box of the shape
-            Rectangle rect = (Rectangle) box.getShape(); // Cast to Rectangle to access width and height
-
-            // Update min and max values based on the bounding box
-            minX = Math.min(minX, box.getX());
-            minY = Math.min(minY, box.getY());
-            maxX = Math.max(maxX, box.getX() + rect.getWidth());
-            maxY = Math.max(maxY, box.getY() + rect.getHeight());
+            Location loc = shape.accept(this); // gets location on bounding box for current shape
+            Rectangle rect = (Rectangle) loc.getShape();
+            minX = Math.min(minX, loc.getX()); //35-38 updates coordinates for current shape, based on bounding box
+            minY = Math.min(minY, loc.getY());
+            maxX = Math.max(maxX, loc.getX() + rect.getWidth());
+            maxY = Math.max(maxY, loc.getY() + rect.getHeight());
         }
-
-        // Return a new Location with the combined bounding box of all shapes
-        return new Location(minX, minY, new Rectangle(maxX - minX, maxY - minY));
+        return new Location(minX, minY, new Rectangle(maxX - minX, maxY-minY));
+        // returns new location of the bounding box, represents the top-left corner and the size (maxX-minX, maxY-minY)
     }
-
 
     @Override
     public Location onLocation(final Location l) {
-        // Calculate the bounding box of the contained shape
-        Location boundingBox = l.getShape().accept(this);
-
-        // Adjust the bounding box coordinates based on the location's coordinates
-        int adjustedX = l.getX() + boundingBox.getX();
-        int adjustedY = l.getY() + boundingBox.getY();
-
-        // Return a new Location with the adjusted coordinates and the same bounding box shape
-        return new Location(adjustedX, adjustedY, boundingBox.getShape());
+        // calc inside shape of bounding box, then shifts that to a specific position
+        Location innerLoc = l.getShape().accept(this); // gives Location representing bBox of inner shape
+        return new Location ( // returns new location object w/ adjusted coordinates of Location and innerLoc
+                l.getX() + innerLoc.getX(), // adding x/y coordinates to innerLoc's
+                l.getY() + innerLoc.getY(),
+                innerLoc.getShape()
+        );
     }
-
 
     @Override
     public Location onRectangle(final Rectangle r) {
-        // The bounding box of a rectangle is the rectangle itself at the origin
+        //Sets rectangles bounding box to rectangle itself at (0, 0)
         return new Location(0, 0, r);
     }
 
     @Override
     public Location onStrokeColor(final StrokeColor c) {
-        // Calculate the bounding box of the contained shape
+        // specifies to Coloring in inner shape. keeps size/position of the shape the same
         return c.getShape().accept(this);
     }
 
-
     @Override
     public Location onOutline(final Outline o) {
-        // Calculate the bounding box of the contained shape
+        // keeps color to the shapes outline only, no change on shapes size/position
         return o.getShape().accept(this);
     }
 
-
     @Override
-    public Location onPolygon(final Polygon s) {
+    public Location onPolygon(final Polygon l) {
+        // says about polygon's min/max x/y points
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE;
         int maxY = Integer.MIN_VALUE;
-
-        // Iterate over each point in the polygon to find the min and max x and y coordinates
-        for (Point p : s.getPoints()) {
+        // for loops through points to set max/min x/y of each point
+        for (Point p : l.getPoints()) {
             minX = Math.min(minX, p.getX());
             minY = Math.min(minY, p.getY());
             maxX = Math.max(maxX, p.getX());
             maxY = Math.max(maxY, p.getY());
         }
-
-        // Create a rectangle with the calculated width and height
-        int width = maxX - minX;
-        int height = maxY - minY;
-
-        // Return the bounding box located at the top-left (minX, minY)
-        return new Location(minX, minY, new Rectangle(width, height));
+        // returns the top left Location of polygon, and rectangle bounding box min/max x/y
+        return new Location(minX, minY, new Rectangle(maxX - minX, maxY - minY));
     }
 }
